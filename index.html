@@ -1,54 +1,171 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<link rel="manifest" href="manifest.json">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Press A to Buy</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 body { font-family: Arial; padding:20px; background:#111; color:white; }
 input, select, button { margin:5px 0; padding:8px; width:100%; }
-.card { background:#1e1e1e; padding:15px; margin-top:15px; border-radius:12px; }
+table { width:100%; margin-top:15px; border-collapse: collapse; }
+th, td { border:1px solid #444; padding:6px; text-align:center; }
+.card { background:#1e1e1e; padding:15px; border-radius:12px; margin-top:20px; }
+button { cursor:pointer; }
 </style>
 </head>
 <body>
-<h2>Press A to Buy – Kleingewerbe App</h2>
+
+<h2>Press A to Buy – Dashboard</h2>
 
 <div class="card">
-<input id="preis" type="number" placeholder="Artikelpreis (€)">
-<input id="versandKunde" type="number" placeholder="Versand vom Käufer (€)">
-<input id="versandKosten" type="number" placeholder="Versandkosten (€)">
+<h3>Neuer Verkauf</h3>
+<input type="date" id="datum">
+<input placeholder="Artikelname" id="artikel">
 <select id="kategorie">
 <option value="0.11">Videospiel (11%)</option>
 <option value="0.11">Konsole (11%)</option>
 </select>
-<button onclick="rechnen()">Berechnen</button>
+<input type="number" placeholder="Einkaufspreis (EK)" id="ek">
+<input type="number" placeholder="Verkaufspreis" id="vk">
+<input type="number" placeholder="Versand vom Käufer" id="versandKunde">
+<input type="number" placeholder="Versandkosten" id="versandKosten">
+<input type="number" placeholder="Sonstige Kosten" id="sonstige">
+<button onclick="addSale()">Speichern</button>
 </div>
 
-<div class="card" id="output"></div>
+<div class="card">
+<h3>Verkäufe</h3>
+<table>
+<thead>
+<tr>
+<th>Datum</th>
+<th>Artikel</th>
+<th>Gewinn</th>
+<th>Steuer (40%)</th>
+<th>Aktion</th>
+</tr>
+</thead>
+<tbody id="salesTable"></tbody>
+</table>
+</div>
+
+<div class="card">
+<h3>Monatsstatistik</h3>
+<canvas id="chart"></canvas>
+</div>
+
+<div class="card">
+<h3>Gesamt</h3>
+<p>Gesamtgewinn: <strong id="gesamtGewinn">0 €</strong></p>
+<p>Steuer-Rücklage: <strong id="gesamtSteuer">0 €</strong></p>
+<button onclick="exportCSV()">CSV Export</button>
+</div>
 
 <script>
-function rechnen(){
-let preis = parseFloat(document.getElementById('preis').value) || 0;
-let vk = parseFloat(document.getElementById('versandKunde').value) || 0;
-let versandKosten = parseFloat(document.getElementById('versandKosten').value) || 0;
-let gebuehr = parseFloat(document.getElementById('kategorie').value);
 
-let einnahmen = preis + vk;
-let ebay = einnahmen * gebuehr;
-let kosten = ebay + versandKosten;
-let gewinn = einnahmen - kosten;
-let steuer = gewinn * 0.4;
-let mein = gewinn * 0.6;
+let sales = JSON.parse(localStorage.getItem("sales_data")) || [];
+let chart;
 
-document.getElementById('output').innerHTML = `
-Gesamteinnahmen: ${einnahmen.toFixed(2)} €<br>
-eBay Gebühr: ${ebay.toFixed(2)} €<br>
-Gewinn: ${gewinn.toFixed(2)} €<br>
-Steuer (40%): ${steuer.toFixed(2)} €<br>
-Mein Anteil: ${mein.toFixed(2)} €
-`;
+function saveLocal() {
+localStorage.setItem("sales_data", JSON.stringify(sales));
 }
+
+function addSale() {
+const datum = document.getElementById("datum").value;
+const artikel = document.getElementById("artikel").value;
+const gebuehr = parseFloat(document.getElementById("kategorie").value);
+const ek = parseFloat(document.getElementById("ek").value) || 0;
+const vk = parseFloat(document.getElementById("vk").value) || 0;
+const versandKunde = parseFloat(document.getElementById("versandKunde").value) || 0;
+const versandKosten = parseFloat(document.getElementById("versandKosten").value) || 0;
+const sonstige = parseFloat(document.getElementById("sonstige").value) || 0;
+
+const einnahmen = vk + versandKunde;
+const ebay = einnahmen * gebuehr;
+const kosten = ek + ebay + versandKosten + sonstige;
+const gewinn = einnahmen - kosten;
+const steuer = gewinn * 0.4;
+
+sales.push({ datum, artikel, gewinn, steuer });
+
+saveLocal();
+render();
+}
+
+function deleteSale(index) {
+sales.splice(index,1);
+saveLocal();
+render();
+}
+
+function render() {
+const table = document.getElementById("salesTable");
+table.innerHTML = "";
+
+let gesamtGewinn = 0;
+let gesamtSteuer = 0;
+let monthly = {};
+
+sales.forEach((s, i) => {
+gesamtGewinn += s.gewinn;
+gesamtSteuer += s.steuer;
+
+const month = s.datum.slice(0,7);
+if(!monthly[month]) monthly[month] = 0;
+monthly[month] += s.gewinn;
+
+table.innerHTML += `
+<tr>
+<td>${s.datum}</td>
+<td>${s.artikel}</td>
+<td>${s.gewinn.toFixed(2)} €</td>
+<td>${s.steuer.toFixed(2)} €</td>
+<td><button onclick="deleteSale(${i})">Löschen</button></td>
+</tr>`;
+});
+
+document.getElementById("gesamtGewinn").innerText = gesamtGewinn.toFixed(2) + " €";
+document.getElementById("gesamtSteuer").innerText = gesamtSteuer.toFixed(2) + " €";
+
+renderChart(monthly);
+}
+
+function renderChart(monthly) {
+const labels = Object.keys(monthly);
+const data = Object.values(monthly);
+
+if(chart) chart.destroy();
+
+chart = new Chart(document.getElementById("chart"), {
+type: "line",
+data: {
+labels: labels,
+datasets: [{
+label: "Monatsgewinn",
+data: data,
+borderColor: "#22c55e",
+borderWidth: 3
+}]
+}
+});
+}
+
+function exportCSV() {
+let csv = "Datum,Artikel,Gewinn,Steuer\n";
+sales.forEach(s => {
+csv += `${s.datum},${s.artikel},${s.gewinn},${s.steuer}\n`;
+});
+const blob = new Blob([csv], { type: "text/csv" });
+const url = URL.createObjectURL(blob);
+const a = document.createElement("a");
+a.href = url;
+a.download = "verkaufsdaten.csv";
+a.click();
+}
+
+render();
+
 </script>
 
 </body>
