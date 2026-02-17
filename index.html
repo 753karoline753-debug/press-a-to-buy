@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="manifest" href="manifest.json">
+<title>Press A to Buy</title>
+<style>
+body { font-family: Arial; padding:20px; background:#111; color:white; }
+input, select, button { margin:5px 0; padding:8px; width:100%; }
+.card { background:#1e1e1e; padding:15px; margin-top:15px; border-radius:12px; }
+</style>
+</head>
+<body>
+<h2>Press A to Buy – Kleingewerbe App</h2>
+
+<div class="card">
+<input id="preis" type="number" placeholder="Artikelpreis (€)">
+<input id="versandKunde" type="number" placeholder="Versand vom Käufer (€)">
+<input id="versandKosten" type="number" placeholder="Versandkosten (€)">
+<select id="kategorie">
+<option value="0.11">Videospiel (11%)</option>
+<option value="0.11">Konsole (11%)</option>
+</select>
+<button onclick="rechnen()">Berechnen</button>
+</div>
+
+<div class="card" id="output"></div>
+
+<script>
+function rechnen(){
+let preis = parseFloat(document.getElementById('preis').value) || 0;
+let vk = parseFloat(document.getElementById('versandKunde').value) || 0;
+let versandKosten = parseFloat(document.getElementById('versandKosten').value) || 0;
+let gebuehr = parseFloat(document.getElementById('kategorie').value);
+
+let einnahmen = preis + vk;
+let ebay = einnahmen * gebuehr;
+let kosten = ebay + versandKosten;
+let gewinn = einnahmen - kosten;
+let steuer = gewinn * 0.4;
+let mein = gewinn * 0.6;
+
+document.getElementById('output').innerHTML = `
+Gesamteinnahmen: ${einnahmen.toFixed(2)} €<br>
+eBay Gebühr: ${ebay.toFixed(2)} €<br>
+Gewinn: ${gewinn.toFixed(2)} €<br>
+Steuer (40%): ${steuer.toFixed(2)} €<br>
+Mein Anteil: ${mein.toFixed(2)} €
+`;
+}
+</script>
+
+</body>
+</html>
