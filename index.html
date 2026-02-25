@@ -1,172 +1,399 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Press A to Buy</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-body { font-family: Arial; padding:20px; background:#111; color:white; }
-input, select, button { margin:5px 0; padding:8px; width:100%; }
-table { width:100%; margin-top:15px; border-collapse: collapse; }
-th, td { border:1px solid #444; padding:6px; text-align:center; }
-.card { background:#1e1e1e; padding:15px; border-radius:12px; margin-top:20px; }
-button { cursor:pointer; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Kleingewerbe App – Lager + Verkäufe + Cloud</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
 
-<h2>Press A to Buy – Dashboard</h2>
+<body class="bg-gray-100">
+<div class="max-w-xl mx-auto p-4 space-y-5">
+  <h1 class="text-2xl font-bold text-center">Kleingewerbe Manager</h1>
 
-<div class="card">
-<h3>Neuer Verkauf</h3>
-<input type="date" id="datum">
-<input placeholder="Artikelname" id="artikel">
-<select id="kategorie">
-<option value="0.11">Videospiel (11%)</option>
-<option value="0.11">Konsole (11%)</option>
-</select>
-<input type="number" placeholder="Einkaufspreis (EK)" id="ek">
-<input type="number" placeholder="Verkaufspreis" id="vk">
-<input type="number" placeholder="Versand vom Käufer" id="versandKunde">
-<input type="number" placeholder="Versandkosten" id="versandKosten">
-<input type="number" placeholder="Sonstige Kosten" id="sonstige">
-<button onclick="addSale()">Speichern</button>
+  <!-- Tabs -->
+  <div class="flex bg-white rounded-xl shadow overflow-hidden">
+    <button id="btnStock"  class="flex-1 py-3" onclick="showTab('stock')">Lager</button>
+    <button id="btnSales"  class="flex-1 py-3" onclick="showTab('sales')">Einnahmen</button>
+    <button id="btnExp"    class="flex-1 py-3" onclick="showTab('exp')">Ausgaben</button>
+    <button id="btnDash"   class="flex-1 py-3" onclick="showTab('dash')">Übersicht</button>
+  </div>
+
+  <!-- LAGER -->
+  <section id="tab-stock" class="space-y-4">
+    <div class="flex gap-2">
+      <button class="flex-1 bg-black text-white py-3 rounded-xl" onclick="addStock()">+ Lagerartikel</button>
+      <button class="bg-green-600 text-white px-4 py-3 rounded-xl" onclick="exportCSV('stock')">CSV</button>
+    </div>
+    <div id="stockList" class="space-y-4"></div>
+  </section>
+
+  <!-- VERKÄUFE -->
+  <section id="tab-sales" class="hidden space-y-4">
+    <div class="flex gap-2">
+      <button class="flex-1 bg-black text-white py-3 rounded-xl" onclick="addSale()">+ Verkauf</button>
+      <button class="bg-green-600 text-white px-4 py-3 rounded-xl" onclick="exportCSV('sales')">CSV</button>
+    </div>
+    <div id="saleList" class="space-y-4"></div>
+  </section>
+
+  <!-- AUSGABEN -->
+  <section id="tab-exp" class="hidden space-y-4">
+    <div class="flex gap-2">
+      <button class="flex-1 bg-black text-white py-3 rounded-xl" onclick="addExpense()">+ Ausgabe</button>
+      <button class="bg-green-600 text-white px-4 py-3 rounded-xl" onclick="exportCSV('exp')">CSV</button>
+    </div>
+    <div id="expenseList" class="space-y-4"></div>
+  </section>
+
+  <!-- ÜBERSICHT -->
+  <section id="tab-dash" class="hidden space-y-4">
+    <div class="bg-white p-4 rounded-2xl shadow">
+      <div class="text-gray-500">Gewinn (Verkäufe − EK − Gebühren − Versandkosten − Ausgaben)</div>
+      <div id="dashProfit" class="text-2xl font-bold">0 €</div>
+    </div>
+
+    <div class="bg-yellow-100 p-4 rounded-2xl shadow">
+      <div class="text-gray-500">40% Steuer-Rücklage (Anzeige)</div>
+      <div id="dashTax" class="text-xl font-bold">0 €</div>
+    </div>
+
+    <div class="bg-green-100 p-4 rounded-2xl shadow">
+      <div class="text-gray-500">Netto nach Rücklage (Anzeige)</div>
+      <div id="dashNet" class="text-2xl font-bold">0 €</div>
+    </div>
+
+    <div class="bg-white p-4 rounded-2xl shadow">
+      <div class="text-gray-500">Lagerwert (EK * Bestand)</div>
+      <div id="dashStockValue" class="text-xl font-bold">0 €</div>
+    </div>
+
+    <div class="bg-white p-4 rounded-2xl shadow">
+      <div class="text-gray-500">Cloud-Status</div>
+      <div id="cloudStatus" class="text-sm font-semibold">Verbinde…</div>
+      <div class="text-xs text-gray-500 mt-1">Deine Daten synchronisieren zwischen Geräten.</div>
+    </div>
+  </section>
 </div>
 
-<div class="card">
-<h3>Verkäufe</h3>
-<table>
-<thead>
-<tr>
-<th>Datum</th>
-<th>Artikel</th>
-<th>Gewinn</th>
-<th>Steuer (40%)</th>
-<th>Aktion</th>
-</tr>
-</thead>
-<tbody id="salesTable"></tbody>
-</table>
-</div>
+<script type="module">
+/* ---------------- Firebase (Cloud Sync) ----------------
+   Docs: Setup + Anonymous Auth + Rules + Offline möglich
+   https://firebase.google.com/docs/web/setup
+   https://firebase.google.com/docs/auth/web/anonymous-auth
+   https://firebase.google.com/docs/firestore/security/get-started
+*/
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import {
+  getFirestore, doc, setDoc, onSnapshot, serverTimestamp,
+  enableIndexedDbPersistence
+} from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
-<div class="card">
-<h3>Monatsstatistik</h3>
-<canvas id="chart"></canvas>
-</div>
+/*** 1) HIER DEINE FIREBASE CONFIG EINTRAGEN ***/
+const firebaseConfig = {
+  // apiKey: "...",
+  // authDomain: "...",
+  // projectId: "...",
+  // appId: "...",
+};
 
-<div class="card">
-<h3>Gesamt</h3>
-<p>Gesamtgewinn: <strong id="gesamtGewinn">0 €</strong></p>
-<p>Steuer-Rücklage: <strong id="gesamtSteuer">0 €</strong></p>
-<button onclick="exportCSV()">CSV Export</button>
-</div>
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-<script>
+// optional offline cache (kann in Safari manchmal warnen – ist ok)
+try { await enableIndexedDbPersistence(db); } catch(e) {}
 
-let sales = JSON.parse(localStorage.getItem("sales_data")) || [];
-let chart;
+const KEY_LOCAL = "kleingewerbe_local_backup_v1";
 
-function saveLocal() {
-localStorage.setItem("sales_data", JSON.stringify(sales));
+/* ---------------- State + Helpers ---------------- */
+let state = loadLocal() || { stock: [], sales: [], expenses: [] };
+let uid = null;
+
+function loadLocal(){
+  try { return JSON.parse(localStorage.getItem(KEY_LOCAL)); } catch { return null; }
+}
+function saveLocal(){
+  localStorage.setItem(KEY_LOCAL, JSON.stringify(state));
 }
 
-function addSale() {
-const datum = document.getElementById("datum").value;
-const artikel = document.getElementById("artikel").value;
-const gebuehr = parseFloat(document.getElementById("kategorie").value);
-const ek = parseFloat(document.getElementById("ek").value) || 0;
-const vk = parseFloat(document.getElementById("vk").value) || 0;
-const versandKunde = parseFloat(document.getElementById("versandKunde").value) || 0;
-const versandKosten = parseFloat(document.getElementById("versandKosten").value) || 0;
-const sonstige = parseFloat(document.getElementById("sonstige").value) || 0;
-
-const einnahmen = vk + versandKunde;
-const ebay = einnahmen * gebuehr;
-const kosten = ek + ebay + versandKosten + sonstige;
-const gewinn = einnahmen - kosten;
-const steuer = gewinn * 0.4;
-
-sales.push({ datum, artikel, gewinn, steuer });
-
-saveLocal();
-render();
+function euro(n){
+  return (Number(n||0)).toLocaleString("de-DE",{style:"currency",currency:"EUR"});
+}
+function parseNum(v){
+  if(v===null || v===undefined) return 0;
+  let s = String(v).trim();
+  if(!s) return 0;
+  s = s.replace(/\s+/g,"");
+  const lc = s.lastIndexOf(",");
+  const ld = s.lastIndexOf(".");
+  if(lc !== -1 && ld !== -1){
+    if(lc > ld) s = s.replace(/\./g,"").replace(",",".");
+    else s = s.replace(/,/g,"");
+  } else {
+    s = s.replace(/\./g,"").replace(",",".");
+  }
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : 0;
+}
+function uidGen(){
+  return (crypto?.randomUUID?.() || (Date.now().toString(36)+Math.random().toString(36).slice(2)));
+}
+function today(){
+  const d=new Date(); const p=x=>String(x).padStart(2,"0");
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+}
+function escAttr(s){
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function escHtml(s){
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
-function deleteSale(index) {
-sales.splice(index,1);
-saveLocal();
-render();
+/* ---------------- UI Tabs ---------------- */
+window.showTab = (t)=>{
+  ["stock","sales","exp","dash"].forEach(x=>{
+    document.getElementById("tab-"+x).classList.toggle("hidden", x!==t);
+  });
+  ["btnStock","btnSales","btnExp","btnDash"].forEach(id=>{
+    document.getElementById(id).classList.remove("bg-black","text-white");
+  });
+  const map={stock:"btnStock",sales:"btnSales",exp:"btnExp",dash:"btnDash"};
+  document.getElementById(map[t]).classList.add("bg-black","text-white");
+  renderAll();
+};
+
+/* ---------------- Lager ---------------- */
+window.addStock = ()=>{
+  state.stock.push({ id: uidGen(), name:"", sku:"", ek:"", qty:"1" });
+  persist();
+  renderStock();
+  updateDash();
+};
+window.delStock = (id)=>{
+  state.stock = state.stock.filter(x=>x.id!==id);
+  persist();
+  renderAll();
+};
+window.updateStock = (id, field, value)=>{
+  const it = state.stock.find(x=>x.id===id);
+  if(!it) return;
+  it[field]=value;
+  persistDebounced();
+  updateDash();
+};
+
+/* ---------------- Verkäufe ----------------
+   Gewinn = (Verkauf + VersandKunde) - (EK*qty) - Gebühren - VersandKosten
+*/
+function saleProfit(s){
+  const qty = Math.max(0, parseNum(s.qty)||0);
+  const sell = parseNum(s.sell);
+  const shipCust = parseNum(s.shipCustomer);
+  const ek = parseNum(s.ek);
+  const fees = parseNum(s.fees);
+  const shipCost = parseNum(s.shipCost);
+  return (sell + shipCust) - (ek * qty) - fees - shipCost;
 }
 
-function render() {
-const table = document.getElementById("salesTable");
-table.innerHTML = "";
+window.addSale = ()=>{
+  state.sales.push({
+    id: uidGen(),
+    date: today(),
+    itemId:"",
+    qty:"1",
+    sell:"",
+    shipCustomer:"",
+    ek:"",
+    fees:"",
+    shipCost:"",
+    note:""
+  });
+  persist();
+  renderSales();
+  updateDash();
+};
 
-let gesamtGewinn = 0;
-let gesamtSteuer = 0;
-let monthly = {};
+window.delSale = (id)=>{
+  state.sales = state.sales.filter(x=>x.id!==id);
+  persist();
+  renderAll();
+};
 
-sales.forEach((s, i) => {
-gesamtGewinn += s.gewinn;
-gesamtSteuer += s.steuer;
+// Lagerbestand automatisch reduzieren/erhöhen bei Artikelwechsel oder Mengenänderung
+function applyStockChange(saleId, newItemId, newQty){
+  const s = state.sales.find(x=>x.id===saleId);
+  if(!s) return;
 
-const month = s.datum.slice(0,7);
-if(!monthly[month]) monthly[month] = 0;
-monthly[month] += s.gewinn;
+  const oldItemId = s.itemId;
+  const oldQty = Math.max(0, parseNum(s.qty)||0);
+  const qty = Math.max(0, parseNum(newQty)||0);
 
-table.innerHTML += `
-<tr>
-<td>${s.datum}</td>
-<td>${s.artikel}</td>
-<td>${s.gewinn.toFixed(2)} €</td>
-<td>${s.steuer.toFixed(2)} €</td>
-<td><button onclick="deleteSale(${i})">Löschen</button></td>
-</tr>`;
-});
+  // altes zurück
+  if(oldItemId){
+    const oldItem = state.stock.find(i=>i.id===oldItemId);
+    if(oldItem) oldItem.qty = String((parseNum(oldItem.qty)||0) + oldQty);
+  }
 
-document.getElementById("gesamtGewinn").innerText = gesamtGewinn.toFixed(2) + " €";
-document.getElementById("gesamtSteuer").innerText = gesamtSteuer.toFixed(2) + " €";
+  // neues abziehen
+  if(newItemId){
+    const it = state.stock.find(i=>i.id===newItemId);
+    if(it){
+      const current = parseNum(it.qty)||0;
+      if(current < qty){
+        alert("Nicht genug Lagerbestand.");
+        const allowed = current;
+        s.qty = String(allowed);
+        it.qty = String(0);
+      } else {
+        it.qty = String(current - qty);
+        s.qty = String(qty);
+      }
+      // EK auto aus Lager (pro Stück)
+      s.ek = it.ek ?? "";
+    }
+  }
 
-renderChart(monthly);
+  s.itemId = newItemId || "";
 }
 
-function renderChart(monthly) {
-const labels = Object.keys(monthly);
-const data = Object.values(monthly);
+window.updateSale = (id, field, value)=>{
+  const s = state.sales.find(x=>x.id===id);
+  if(!s) return;
 
-if(chart) chart.destroy();
+  if(field==="itemId"){
+    applyStockChange(id, value, s.qty);
+  } else if(field==="qty"){
+    applyStockChange(id, s.itemId, value);
+  } else {
+    s[field]=value;
+  }
 
-chart = new Chart(document.getElementById("chart"), {
-type: "line",
-data: {
-labels: labels,
-datasets: [{
-label: "Monatsgewinn",
-data: data,
-borderColor: "#22c55e",
-borderWidth: 3
-}]
+  persistDebounced();
+  updateSaleComputed(id);
+  updateDash();
+};
+
+function updateSaleComputed(id){
+  const s = state.sales.find(x=>x.id===id);
+  if(!s) return;
+  const profit = saleProfit(s);
+  const tax = profit>0 ? profit*0.4 : 0;
+  const net = profit - tax;
+
+  const pEl = document.querySelector(`[data-sale-profit='${id}']`);
+  const tEl = document.querySelector(`[data-sale-tax='${id}']`);
+  const nEl = document.querySelector(`[data-sale-net='${id}']`);
+  if(pEl) pEl.textContent = euro(profit);
+  if(tEl) tEl.textContent = euro(tax);
+  if(nEl) nEl.textContent = euro(net);
 }
-});
+
+/* ---------------- Ausgaben ---------------- */
+window.addExpense = ()=>{
+  state.expenses.push({ id: uidGen(), date: today(), title:"", amount:"" });
+  persist();
+  renderExpenses();
+  updateDash();
+};
+window.delExpense = (id)=>{
+  state.expenses = state.expenses.filter(x=>x.id!==id);
+  persist();
+  renderAll();
+};
+window.updateExpense = (id, field, value)=>{
+  const e = state.expenses.find(x=>x.id===id);
+  if(!e) return;
+  e[field]=value;
+  persistDebounced();
+  updateDash();
+};
+
+/* ---------------- Render ---------------- */
+function stockOptions(selectedId){
+  const opts = [`<option value="">Bitte wählen…</option>`];
+  for(const it of state.stock){
+    const q = parseNum(it.qty)||0;
+    const label = `${it.name || "(ohne Name)"} • Bestand: ${q}`;
+    opts.push(`<option value="${it.id}" ${it.id===selectedId?"selected":""}>${escHtml(label)}</option>`);
+  }
+  return opts.join("");
 }
 
-function exportCSV() {
-let csv = "Datum,Artikel,Gewinn,Steuer\n";
-sales.forEach(s => {
-csv += `${s.datum},${s.artikel},${s.gewinn},${s.steuer}\n`;
-});
-const blob = new Blob([csv], { type: "text/csv" });
-const url = URL.createObjectURL(blob);
-const a = document.createElement("a");
-a.href = url;
-a.download = "verkaufsdaten.csv";
-a.click();
+function renderStock(){
+  const wrap=document.getElementById("stockList");
+  wrap.innerHTML="";
+  for(const it of state.stock){
+    wrap.insertAdjacentHTML("beforeend", `
+      <div class="bg-white p-4 rounded-2xl shadow space-y-3">
+        <div class="text-sm font-semibold">Lagerartikel</div>
+        <input class="w-full border p-2 rounded-xl" placeholder="Artikelname"
+          value="${escAttr(it.name)}" oninput="updateStock('${it.id}','name',this.value)">
+        <div class="grid grid-cols-2 gap-2">
+          <input class="w-full border p-2 rounded-xl" placeholder="SKU (optional)"
+            value="${escAttr(it.sku)}" oninput="updateStock('${it.id}','sku',this.value)">
+          <input inputmode="decimal" class="w-full border p-2 rounded-xl" placeholder="EK pro Stück"
+            value="${escAttr(it.ek)}" oninput="updateStock('${it.id}','ek',this.value)">
+          <input inputmode="numeric" class="w-full border p-2 rounded-xl col-span-2" placeholder="Menge im Lager"
+            value="${escAttr(it.qty)}" oninput="updateStock('${it.id}','qty',this.value)">
+        </div>
+        <button class="w-full bg-red-600 text-white py-2 rounded-xl" onclick="delStock('${it.id}')">Löschen</button>
+      </div>
+    `);
+  }
 }
 
-render();
+function renderSales(){
+  const wrap=document.getElementById("saleList");
+  wrap.innerHTML="";
+  for(const s of state.sales){
+    const it = state.stock.find(x=>x.id===s.itemId);
+    const profit = saleProfit(s);
+    const tax = profit>0 ? profit*0.4 : 0;
+    const net = profit - tax;
 
-</script>
+    wrap.insertAdjacentHTML("beforeend", `
+      <div class="bg-white p-4 rounded-2xl shadow space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-semibold">Verkauf</div>
+          <button class="text-xs bg-red-600 text-white px-3 py-2 rounded-xl" onclick="delSale('${s.id}')">Löschen</button>
+        </div>
 
-</body>
-</html>
+        <input type="date" class="w-full border p-2 rounded-xl"
+          value="${escAttr(s.date)}" onchange="updateSale('${s.id}','date',this.value)">
+
+        <select class="w-full border p-2 rounded-xl" onchange="updateSale('${s.id}','itemId',this.value)">
+          ${stockOptions(s.itemId)}
+        </select>
+
+        <div class="grid grid-cols-2 gap-2">
+          <input inputmode="numeric" class="w-full border p-2 rounded-xl" placeholder="Menge"
+            value="${escAttr(s.qty)}" oninput="updateSale('${s.id}','qty',this.value)">
+
+          <input inputmode="decimal" class="w-full border p-2 rounded-xl" placeholder="Verkauf (ohne Versand)"
+            value="${escAttr(s.sell)}" oninput="updateSale('${s.id}','sell',this.value)">
+
+          <input inputmode="decimal" class="w-full border p-2 rounded-xl" placeholder="Versand vom Kunden"
+            value="${escAttr(s.shipCustomer)}" oninput="updateSale('${s.id}','shipCustomer',this.value)">
+
+          <input inputmode="decimal" class="w-full border p-2 rounded-xl" placeholder="EK pro Stück (auto)"
+            value="${escAttr(s.ek)}" oninput="updateSale('${s.id}','ek',this.value)">
+
+          <input inputmode="decimal" class="w-full border p-2 rounded-xl" placeholder="Gebühren"
+            value="${escAttr(s.fees)}" oninput="updateSale('${s.id}','fees',this.value)">
+
+          <input inputmode="decimal" class="w-full border p-2 rounded-xl" placeholder="Versandkosten (deine)"
+            value="${escAttr(s.shipCost)}" oninput="updateSale('${s.id}','shipCost',this.value)">
+        </div>
+
+        <input class="w-full border p-2 rounded-xl" placeholder="Notiz"
+          value="${escAttr(s.note)}" oninput="updateSale('${s.id}','note',this.value)">
+
+        <div class="text-sm space-y-1">
+          <div>Gewinn: <b data-sale-profit="${s.id}">${euro(profit)}</b></div>
+          <div>40% Rücklage: <b data-sale-tax="${s.id}">${euro(tax)}</b></div>
+          <div>Netto (Anzeige): <b data-sale-net="${s.id}">${euro(net)}</b></div>
+        </div>
+
+        ${it ? `<div class="text-xs text-gray-500">Aus Lager: ${escHtml(it.name || "(ohne Name)")} • Rest: ${
