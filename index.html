@@ -1,399 +1,350 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Kleingewerbe App – Lager + Verkäufe + Cloud</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Artikel Übersicht</title>
+  <style>
+    :root { --radius: 16px; --shadow: 0 10px 30px rgba(0,0,0,.08); }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background:#f6f7fb; color:#111; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; display: grid; gap: 16px; }
+    h1 { margin: 6px 0 2px; font-size: 28px; }
+    .card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); }
+    .card .pad { padding: 16px; }
+    .grid { display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0,1fr)); }
+    @media (min-width: 900px) { .grid { grid-template-columns: repeat(4, minmax(0,1fr)); } }
+    label { font-size: 12px; color:#555; display:block; margin-bottom: 6px; }
+    input, select { width: 100%; padding: 10px 12px; border: 1px solid #e6e7ee; border-radius: 12px; background:#fff; outline: none; }
+    input:focus, select:focus { border-color: #b7b9ff; box-shadow: 0 0 0 4px rgba(120, 123, 255, .15); }
+    .btnrow { display:flex; gap: 10px; flex-wrap: wrap; }
+    button {
+      border: 0; padding: 10px 14px; border-radius: 12px; cursor: pointer;
+      background:#111; color:#fff; font-weight: 600;
+    }
+    button.secondary { background:#eef0f6; color:#111; }
+    button.danger { background:#ff3b30; }
+    button.small { padding: 8px 10px; border-radius: 10px; font-size: 12px; }
+    .tablewrap { overflow:auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    th, td { text-align:left; padding: 10px 10px; border-bottom: 1px solid #eef0f6; font-size: 13px; vertical-align: top; }
+    th { font-size: 12px; color:#555; position: sticky; top: 0; background: #fff; }
+    .sumgrid { display:grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    @media (min-width: 900px) { .sumgrid { grid-template-columns: repeat(5, minmax(0,1fr)); } }
+    .kpi { background:#f6f7fb; border-radius: 14px; padding: 12px; }
+    .kpi .t { font-size: 12px; color:#666; }
+    .kpi .v { font-size: 16px; font-weight: 700; margin-top: 4px; }
+    .muted { color:#666; font-size: 12px; }
+    .right { text-align:right; }
+  </style>
 </head>
+<body>
+  <div class="wrap">
+    <h1>Artikel Business Übersicht</h1>
+    <div class="muted">Einträge werden automatisch lokal gespeichert (nur auf deinem Gerät).</div>
 
-<body class="bg-gray-100">
-<div class="max-w-xl mx-auto p-4 space-y-5">
-  <h1 class="text-2xl font-bold text-center">Kleingewerbe Manager</h1>
+    <!-- Formular -->
+    <div class="card">
+      <div class="pad">
+        <div class="grid">
+          <div>
+            <label>Artikelnummer</label>
+            <input id="artikelnummer" placeholder="z.B. 12345" />
+          </div>
+          <div>
+            <label>Datum</label>
+            <input id="datum" type="date" />
+          </div>
+          <div style="grid-column: span 2;">
+            <label>Beschreibung</label>
+            <input id="beschreibung" placeholder="z.B. Nike Air Max Größe 44" />
+          </div>
 
-  <!-- Tabs -->
-  <div class="flex bg-white rounded-xl shadow overflow-hidden">
-    <button id="btnStock"  class="flex-1 py-3" onclick="showTab('stock')">Lager</button>
-    <button id="btnSales"  class="flex-1 py-3" onclick="showTab('sales')">Einnahmen</button>
-    <button id="btnExp"    class="flex-1 py-3" onclick="showTab('exp')">Ausgaben</button>
-    <button id="btnDash"   class="flex-1 py-3" onclick="showTab('dash')">Übersicht</button>
+          <div>
+            <label>Verkäufer / Käufer</label>
+            <input id="verkaufer" placeholder="z.B. Max" />
+          </div>
+          <div>
+            <label>Plattform</label>
+            <input id="plattform" placeholder="z.B. eBay / Kleinanzeigen" />
+          </div>
+          <div>
+            <label>Zahlungsart</label>
+            <input id="zahlungsart" placeholder="z.B. PayPal / Bar" />
+          </div>
+
+          <div>
+            <label>Kaufpreis (€)</label>
+            <input id="kaufpreis" inputmode="decimal" placeholder="0,00" />
+          </div>
+          <div>
+            <label>Verkaufspreis (€)</label>
+            <input id="verkaufspreis" inputmode="decimal" placeholder="0,00" />
+          </div>
+          <div>
+            <label>eBay Gebühren (€)</label>
+            <input id="ebayGebuehren" inputmode="decimal" placeholder="0,00" />
+          </div>
+          <div>
+            <label>Versandkosten (€)</label>
+            <input id="versandkosten" inputmode="decimal" placeholder="0,00" />
+          </div>
+        </div>
+
+        <div style="margin-top:12px" class="btnrow">
+          <button id="saveBtn">Artikel hinzufügen</button>
+          <button id="resetBtn" class="secondary">Formular leeren</button>
+          <button id="exportBtn" class="secondary">CSV Export</button>
+          <button id="clearAllBtn" class="danger">Alles löschen</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summen -->
+    <div class="card">
+      <div class="pad">
+        <div class="sumgrid">
+          <div class="kpi"><div class="t">Kauf Gesamt</div><div class="v" id="sumKauf">0,00 €</div></div>
+          <div class="kpi"><div class="t">Verkauf Gesamt</div><div class="v" id="sumVerkauf">0,00 €</div></div>
+          <div class="kpi"><div class="t">eBay Gebühren</div><div class="v" id="sumEbay">0,00 €</div></div>
+          <div class="kpi"><div class="t">Versandkosten</div><div class="v" id="sumVersand">0,00 €</div></div>
+          <div class="kpi"><div class="t">Gesamt Gewinn (nach 40% Rücklage)</div><div class="v" id="sumGewinn">0,00 €</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabelle -->
+    <div class="card">
+      <div class="pad tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nr</th>
+              <th>Datum</th>
+              <th>Beschreibung</th>
+              <th>Verkäufer</th>
+              <th>Plattform</th>
+              <th>Zahlungsart</th>
+              <th class="right">Kauf</th>
+              <th class="right">Verkauf</th>
+              <th class="right">eBay</th>
+              <th class="right">Versand</th>
+              <th class="right">Gewinn</th>
+              <th>Aktion</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
-  <!-- LAGER -->
-  <section id="tab-stock" class="space-y-4">
-    <div class="flex gap-2">
-      <button class="flex-1 bg-black text-white py-3 rounded-xl" onclick="addStock()">+ Lagerartikel</button>
-      <button class="bg-green-600 text-white px-4 py-3 rounded-xl" onclick="exportCSV('stock')">CSV</button>
-    </div>
-    <div id="stockList" class="space-y-4"></div>
-  </section>
+  <script>
+    const LS_KEY = "artikelListe_v1";
+    let artikel = [];
+    let editIndex = null;
 
-  <!-- VERKÄUFE -->
-  <section id="tab-sales" class="hidden space-y-4">
-    <div class="flex gap-2">
-      <button class="flex-1 bg-black text-white py-3 rounded-xl" onclick="addSale()">+ Verkauf</button>
-      <button class="bg-green-600 text-white px-4 py-3 rounded-xl" onclick="exportCSV('sales')">CSV</button>
-    </div>
-    <div id="saleList" class="space-y-4"></div>
-  </section>
+    // Helpers
+    const € = (n) => new Intl.NumberFormat("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + " €";
+    const toNum = (s) => {
+      if (s === null || s === undefined) return 0;
+      const cleaned = String(s).trim().replaceAll(".", "").replace(",", ".");
+      const n = parseFloat(cleaned);
+      return Number.isFinite(n) ? n : 0;
+    };
 
-  <!-- AUSGABEN -->
-  <section id="tab-exp" class="hidden space-y-4">
-    <div class="flex gap-2">
-      <button class="flex-1 bg-black text-white py-3 rounded-xl" onclick="addExpense()">+ Ausgabe</button>
-      <button class="bg-green-600 text-white px-4 py-3 rounded-xl" onclick="exportCSV('exp')">CSV</button>
-    </div>
-    <div id="expenseList" class="space-y-4"></div>
-  </section>
+    function berechne(item) {
+      const kauf = toNum(item.kaufpreis);
+      const verkauf = toNum(item.verkaufspreis);
+      const ebay = toNum(item.ebayGebuehren);
+      const versand = toNum(item.versandkosten);
 
-  <!-- ÜBERSICHT -->
-  <section id="tab-dash" class="hidden space-y-4">
-    <div class="bg-white p-4 rounded-2xl shadow">
-      <div class="text-gray-500">Gewinn (Verkäufe − EK − Gebühren − Versandkosten − Ausgaben)</div>
-      <div id="dashProfit" class="text-2xl font-bold">0 €</div>
-    </div>
+      const gewinnOhneGebuehren = verkauf - kauf;
+      const gesamt = gewinnOhneGebuehren - ebay - versand;
+      const steuerRuecklage = gesamt * 0.4;
+      const gewinn = gesamt - steuerRuecklage;
 
-    <div class="bg-yellow-100 p-4 rounded-2xl shadow">
-      <div class="text-gray-500">40% Steuer-Rücklage (Anzeige)</div>
-      <div id="dashTax" class="text-xl font-bold">0 €</div>
-    </div>
-
-    <div class="bg-green-100 p-4 rounded-2xl shadow">
-      <div class="text-gray-500">Netto nach Rücklage (Anzeige)</div>
-      <div id="dashNet" class="text-2xl font-bold">0 €</div>
-    </div>
-
-    <div class="bg-white p-4 rounded-2xl shadow">
-      <div class="text-gray-500">Lagerwert (EK * Bestand)</div>
-      <div id="dashStockValue" class="text-xl font-bold">0 €</div>
-    </div>
-
-    <div class="bg-white p-4 rounded-2xl shadow">
-      <div class="text-gray-500">Cloud-Status</div>
-      <div id="cloudStatus" class="text-sm font-semibold">Verbinde…</div>
-      <div class="text-xs text-gray-500 mt-1">Deine Daten synchronisieren zwischen Geräten.</div>
-    </div>
-  </section>
-</div>
-
-<script type="module">
-/* ---------------- Firebase (Cloud Sync) ----------------
-   Docs: Setup + Anonymous Auth + Rules + Offline möglich
-   https://firebase.google.com/docs/web/setup
-   https://firebase.google.com/docs/auth/web/anonymous-auth
-   https://firebase.google.com/docs/firestore/security/get-started
-*/
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-import {
-  getFirestore, doc, setDoc, onSnapshot, serverTimestamp,
-  enableIndexedDbPersistence
-} from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-
-/*** 1) HIER DEINE FIREBASE CONFIG EINTRAGEN ***/
-const firebaseConfig = {
-  // apiKey: "...",
-  // authDomain: "...",
-  // projectId: "...",
-  // appId: "...",
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// optional offline cache (kann in Safari manchmal warnen – ist ok)
-try { await enableIndexedDbPersistence(db); } catch(e) {}
-
-const KEY_LOCAL = "kleingewerbe_local_backup_v1";
-
-/* ---------------- State + Helpers ---------------- */
-let state = loadLocal() || { stock: [], sales: [], expenses: [] };
-let uid = null;
-
-function loadLocal(){
-  try { return JSON.parse(localStorage.getItem(KEY_LOCAL)); } catch { return null; }
-}
-function saveLocal(){
-  localStorage.setItem(KEY_LOCAL, JSON.stringify(state));
-}
-
-function euro(n){
-  return (Number(n||0)).toLocaleString("de-DE",{style:"currency",currency:"EUR"});
-}
-function parseNum(v){
-  if(v===null || v===undefined) return 0;
-  let s = String(v).trim();
-  if(!s) return 0;
-  s = s.replace(/\s+/g,"");
-  const lc = s.lastIndexOf(",");
-  const ld = s.lastIndexOf(".");
-  if(lc !== -1 && ld !== -1){
-    if(lc > ld) s = s.replace(/\./g,"").replace(",",".");
-    else s = s.replace(/,/g,"");
-  } else {
-    s = s.replace(/\./g,"").replace(",",".");
-  }
-  const n = parseFloat(s);
-  return Number.isFinite(n) ? n : 0;
-}
-function uidGen(){
-  return (crypto?.randomUUID?.() || (Date.now().toString(36)+Math.random().toString(36).slice(2)));
-}
-function today(){
-  const d=new Date(); const p=x=>String(x).padStart(2,"0");
-  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
-}
-function escAttr(s){
-  return String(s ?? "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-}
-function escHtml(s){
-  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-}
-
-/* ---------------- UI Tabs ---------------- */
-window.showTab = (t)=>{
-  ["stock","sales","exp","dash"].forEach(x=>{
-    document.getElementById("tab-"+x).classList.toggle("hidden", x!==t);
-  });
-  ["btnStock","btnSales","btnExp","btnDash"].forEach(id=>{
-    document.getElementById(id).classList.remove("bg-black","text-white");
-  });
-  const map={stock:"btnStock",sales:"btnSales",exp:"btnExp",dash:"btnDash"};
-  document.getElementById(map[t]).classList.add("bg-black","text-white");
-  renderAll();
-};
-
-/* ---------------- Lager ---------------- */
-window.addStock = ()=>{
-  state.stock.push({ id: uidGen(), name:"", sku:"", ek:"", qty:"1" });
-  persist();
-  renderStock();
-  updateDash();
-};
-window.delStock = (id)=>{
-  state.stock = state.stock.filter(x=>x.id!==id);
-  persist();
-  renderAll();
-};
-window.updateStock = (id, field, value)=>{
-  const it = state.stock.find(x=>x.id===id);
-  if(!it) return;
-  it[field]=value;
-  persistDebounced();
-  updateDash();
-};
-
-/* ---------------- Verkäufe ----------------
-   Gewinn = (Verkauf + VersandKunde) - (EK*qty) - Gebühren - VersandKosten
-*/
-function saleProfit(s){
-  const qty = Math.max(0, parseNum(s.qty)||0);
-  const sell = parseNum(s.sell);
-  const shipCust = parseNum(s.shipCustomer);
-  const ek = parseNum(s.ek);
-  const fees = parseNum(s.fees);
-  const shipCost = parseNum(s.shipCost);
-  return (sell + shipCust) - (ek * qty) - fees - shipCost;
-}
-
-window.addSale = ()=>{
-  state.sales.push({
-    id: uidGen(),
-    date: today(),
-    itemId:"",
-    qty:"1",
-    sell:"",
-    shipCustomer:"",
-    ek:"",
-    fees:"",
-    shipCost:"",
-    note:""
-  });
-  persist();
-  renderSales();
-  updateDash();
-};
-
-window.delSale = (id)=>{
-  state.sales = state.sales.filter(x=>x.id!==id);
-  persist();
-  renderAll();
-};
-
-// Lagerbestand automatisch reduzieren/erhöhen bei Artikelwechsel oder Mengenänderung
-function applyStockChange(saleId, newItemId, newQty){
-  const s = state.sales.find(x=>x.id===saleId);
-  if(!s) return;
-
-  const oldItemId = s.itemId;
-  const oldQty = Math.max(0, parseNum(s.qty)||0);
-  const qty = Math.max(0, parseNum(newQty)||0);
-
-  // altes zurück
-  if(oldItemId){
-    const oldItem = state.stock.find(i=>i.id===oldItemId);
-    if(oldItem) oldItem.qty = String((parseNum(oldItem.qty)||0) + oldQty);
-  }
-
-  // neues abziehen
-  if(newItemId){
-    const it = state.stock.find(i=>i.id===newItemId);
-    if(it){
-      const current = parseNum(it.qty)||0;
-      if(current < qty){
-        alert("Nicht genug Lagerbestand.");
-        const allowed = current;
-        s.qty = String(allowed);
-        it.qty = String(0);
-      } else {
-        it.qty = String(current - qty);
-        s.qty = String(qty);
-      }
-      // EK auto aus Lager (pro Stück)
-      s.ek = it.ek ?? "";
+      return { ...item, gewinnOhneGebuehren, gesamt, steuerRuecklage, gewinn };
     }
-  }
 
-  s.itemId = newItemId || "";
-}
+    function load() {
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        artikel = raw ? JSON.parse(raw) : [];
+      } catch { artikel = []; }
+    }
 
-window.updateSale = (id, field, value)=>{
-  const s = state.sales.find(x=>x.id===id);
-  if(!s) return;
+    function save() {
+      localStorage.setItem(LS_KEY, JSON.stringify(artikel));
+    }
 
-  if(field==="itemId"){
-    applyStockChange(id, value, s.qty);
-  } else if(field==="qty"){
-    applyStockChange(id, s.itemId, value);
-  } else {
-    s[field]=value;
-  }
+    function getForm() {
+      return {
+        artikelnummer: document.getElementById("artikelnummer").value,
+        datum: document.getElementById("datum").value,
+        beschreibung: document.getElementById("beschreibung").value,
+        verkaufer: document.getElementById("verkaufer").value,
+        plattform: document.getElementById("plattform").value,
+        zahlungsart: document.getElementById("zahlungsart").value,
+        kaufpreis: document.getElementById("kaufpreis").value,
+        verkaufspreis: document.getElementById("verkaufspreis").value,
+        ebayGebuehren: document.getElementById("ebayGebuehren").value,
+        versandkosten: document.getElementById("versandkosten").value,
+      };
+    }
 
-  persistDebounced();
-  updateSaleComputed(id);
-  updateDash();
-};
+    function setForm(v) {
+      document.getElementById("artikelnummer").value = v.artikelnummer ?? "";
+      document.getElementById("datum").value = v.datum ?? "";
+      document.getElementById("beschreibung").value = v.beschreibung ?? "";
+      document.getElementById("verkaufer").value = v.verkaufer ?? "";
+      document.getElementById("plattform").value = v.plattform ?? "";
+      document.getElementById("zahlungsart").value = v.zahlungsart ?? "";
+      document.getElementById("kaufpreis").value = v.kaufpreis ?? "";
+      document.getElementById("verkaufspreis").value = v.verkaufspreis ?? "";
+      document.getElementById("ebayGebuehren").value = v.ebayGebuehren ?? "";
+      document.getElementById("versandkosten").value = v.versandkosten ?? "";
+    }
 
-function updateSaleComputed(id){
-  const s = state.sales.find(x=>x.id===id);
-  if(!s) return;
-  const profit = saleProfit(s);
-  const tax = profit>0 ? profit*0.4 : 0;
-  const net = profit - tax;
+    function resetForm() {
+      setForm({});
+      editIndex = null;
+      document.getElementById("saveBtn").textContent = "Artikel hinzufügen";
+    }
 
-  const pEl = document.querySelector(`[data-sale-profit='${id}']`);
-  const tEl = document.querySelector(`[data-sale-tax='${id}']`);
-  const nEl = document.querySelector(`[data-sale-net='${id}']`);
-  if(pEl) pEl.textContent = euro(profit);
-  if(tEl) tEl.textContent = euro(tax);
-  if(nEl) nEl.textContent = euro(net);
-}
+    function render() {
+      const tbody = document.getElementById("tbody");
+      tbody.innerHTML = "";
 
-/* ---------------- Ausgaben ---------------- */
-window.addExpense = ()=>{
-  state.expenses.push({ id: uidGen(), date: today(), title:"", amount:"" });
-  persist();
-  renderExpenses();
-  updateDash();
-};
-window.delExpense = (id)=>{
-  state.expenses = state.expenses.filter(x=>x.id!==id);
-  persist();
-  renderAll();
-};
-window.updateExpense = (id, field, value)=>{
-  const e = state.expenses.find(x=>x.id===id);
-  if(!e) return;
-  e[field]=value;
-  persistDebounced();
-  updateDash();
-};
+      artikel.forEach((a, i) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(a.artikelnummer || "")}</td>
+          <td>${escapeHtml(a.datum || "")}</td>
+          <td>${escapeHtml(a.beschreibung || "")}</td>
+          <td>${escapeHtml(a.verkaufer || "")}</td>
+          <td>${escapeHtml(a.plattform || "")}</td>
+          <td>${escapeHtml(a.zahlungsart || "")}</td>
+          <td class="right">${€(toNum(a.kaufpreis))}</td>
+          <td class="right">${€(toNum(a.verkaufspreis))}</td>
+          <td class="right">${€(toNum(a.ebayGebuehren))}</td>
+          <td class="right">${€(toNum(a.versandkosten))}</td>
+          <td class="right"><b>${€(a.gewinn || 0)}</b></td>
+          <td>
+            <button class="small secondary" data-action="edit" data-i="${i}">Edit</button>
+            <button class="small danger" data-action="del" data-i="${i}">Löschen</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
 
-/* ---------------- Render ---------------- */
-function stockOptions(selectedId){
-  const opts = [`<option value="">Bitte wählen…</option>`];
-  for(const it of state.stock){
-    const q = parseNum(it.qty)||0;
-    const label = `${it.name || "(ohne Name)"} • Bestand: ${q}`;
-    opts.push(`<option value="${it.id}" ${it.id===selectedId?"selected":""}>${escHtml(label)}</option>`);
-  }
-  return opts.join("");
-}
+      // Summen
+      const sums = artikel.reduce((acc, a) => {
+        acc.kauf += toNum(a.kaufpreis);
+        acc.verkauf += toNum(a.verkaufspreis);
+        acc.ebay += toNum(a.ebayGebuehren);
+        acc.versand += toNum(a.versandkosten);
+        acc.gewinn += (a.gewinn || 0);
+        return acc;
+      }, { kauf: 0, verkauf: 0, ebay: 0, versand: 0, gewinn: 0 });
 
-function renderStock(){
-  const wrap=document.getElementById("stockList");
-  wrap.innerHTML="";
-  for(const it of state.stock){
-    wrap.insertAdjacentHTML("beforeend", `
-      <div class="bg-white p-4 rounded-2xl shadow space-y-3">
-        <div class="text-sm font-semibold">Lagerartikel</div>
-        <input class="w-full border p-2 rounded-xl" placeholder="Artikelname"
-          value="${escAttr(it.name)}" oninput="updateStock('${it.id}','name',this.value)">
-        <div class="grid grid-cols-2 gap-2">
-          <input class="w-full border p-2 rounded-xl" placeholder="SKU (optional)"
-            value="${escAttr(it.sku)}" oninput="updateStock('${it.id}','sku',this.value)">
-          <input inputmode="decimal" class="w-full border p-2 rounded-xl" placeholder="EK pro Stück"
-            value="${escAttr(it.ek)}" oninput="updateStock('${it.id}','ek',this.value)">
-          <input inputmode="numeric" class="w-full border p-2 rounded-xl col-span-2" placeholder="Menge im Lager"
-            value="${escAttr(it.qty)}" oninput="updateStock('${it.id}','qty',this.value)">
-        </div>
-        <button class="w-full bg-red-600 text-white py-2 rounded-xl" onclick="delStock('${it.id}')">Löschen</button>
-      </div>
-    `);
-  }
-}
+      document.getElementById("sumKauf").textContent = €(sums.kauf);
+      document.getElementById("sumVerkauf").textContent = €(sums.verkauf);
+      document.getElementById("sumEbay").textContent = €(sums.ebay);
+      document.getElementById("sumVersand").textContent = €(sums.versand);
+      document.getElementById("sumGewinn").textContent = €(sums.gewinn);
+    }
 
-function renderSales(){
-  const wrap=document.getElementById("saleList");
-  wrap.innerHTML="";
-  for(const s of state.sales){
-    const it = state.stock.find(x=>x.id===s.itemId);
-    const profit = saleProfit(s);
-    const tax = profit>0 ? profit*0.4 : 0;
-    const net = profit - tax;
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, (m) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      }[m]));
+    }
 
-    wrap.insertAdjacentHTML("beforeend", `
-      <div class="bg-white p-4 rounded-2xl shadow space-y-3">
-        <div class="flex items-center justify-between">
-          <div class="text-sm font-semibold">Verkauf</div>
-          <button class="text-xs bg-red-600 text-white px-3 py-2 rounded-xl" onclick="delSale('${s.id}')">Löschen</button>
-        </div>
+    // Aktionen
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      const item = berechne(getForm());
 
-        <input type="date" class="w-full border p-2 rounded-xl"
-          value="${escAttr(s.date)}" onchange="updateSale('${s.id}','date',this.value)">
+      if (editIndex !== null) {
+        artikel[editIndex] = item;
+        editIndex = null;
+        document.getElementById("saveBtn").textContent = "Artikel hinzufügen";
+      } else {
+        artikel.push(item);
+      }
 
-        <select class="w-full border p-2 rounded-xl" onchange="updateSale('${s.id}','itemId',this.value)">
-          ${stockOptions(s.itemId)}
-        </select>
+      save();
+      render();
+      resetForm();
+    });
 
-        <div class="grid grid-cols-2 gap-2">
-          <input inputmode="numeric" class="w-full border p-2 rounded-xl" placeholder="Menge"
-            value="${escAttr(s.qty)}" oninput="updateSale('${s.id}','qty',this.value)">
+    document.getElementById("resetBtn").addEventListener("click", resetForm);
 
-          <input inputmode="decimal" class="w-full border p-2 rounded-xl" placeholder="Verkauf (ohne Versand)"
-            value="${escAttr(s.sell)}" oninput="updateSale('${s.id}','sell',this.value)">
+    document.getElementById("clearAllBtn").addEventListener("click", () => {
+      if (!confirm("Wirklich ALLES löschen?")) return;
+      artikel = [];
+      save();
+      render();
+      resetForm();
+    });
 
-          <input inputmode="decimal" class="w-full border p-2 rounded-xl" placeholder="Versand vom Kunden"
-            value="${escAttr(s.shipCustomer)}" oninput="updateSale('${s.id}','shipCustomer',this.value)">
+    document.getElementById("tbody").addEventListener("click", (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const i = Number(btn.dataset.i);
+      const action = btn.dataset.action;
 
-          <input inputmode="decimal" class="w-full border p-2 rounded-xl" placeholder="EK pro Stück (auto)"
-            value="${escAttr(s.ek)}" oninput="updateSale('${s.id}','ek',this.value)">
+      if (action === "del") {
+        artikel.splice(i, 1);
+        save();
+        render();
+        resetForm();
+      }
 
-          <input inputmode="decimal" class="w-full border p-2 rounded-xl" placeholder="Gebühren"
-            value="${escAttr(s.fees)}" oninput="updateSale('${s.id}','fees',this.value)">
+      if (action === "edit") {
+        editIndex = i;
+        setForm(artikel[i]);
+        document.getElementById("saveBtn").textContent = "Artikel speichern";
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
 
-          <input inputmode="decimal" class="w-full border p-2 rounded-xl" placeholder="Versandkosten (deine)"
-            value="${escAttr(s.shipCost)}" oninput="updateSale('${s.id}','shipCost',this.value)">
-        </div>
+    document.getElementById("exportBtn").addEventListener("click", () => {
+      // CSV (;) für Deutschland
+      const header = [
+        "artikelnummer","datum","beschreibung","verkaufer","plattform","zahlungsart",
+        "kaufpreis","verkaufspreis","ebayGebuehren","versandkosten","gewinn"
+      ];
 
-        <input class="w-full border p-2 rounded-xl" placeholder="Notiz"
-          value="${escAttr(s.note)}" oninput="updateSale('${s.id}','note',this.value)">
+      const rows = artikel.map(a => header.map(k => {
+        const v = (k === "gewinn") ? (a.gewinn ?? 0) : (a[k] ?? "");
+        // CSV-safe
+        const s = String(v).replaceAll('"','""');
+        return `"${s}"`;
+      }));
 
-        <div class="text-sm space-y-1">
-          <div>Gewinn: <b data-sale-profit="${s.id}">${euro(profit)}</b></div>
-          <div>40% Rücklage: <b data-sale-tax="${s.id}">${euro(tax)}</b></div>
-          <div>Netto (Anzeige): <b data-sale-net="${s.id}">${euro(net)}</b></div>
-        </div>
+      const csv = [header.join(";"), ...rows.map(r => r.join(";"))].join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
 
-        ${it ? `<div class="text-xs text-gray-500">Aus Lager: ${escHtml(it.name || "(ohne Name)")} • Rest: ${
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "artikel_export.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    });
+
+    // Init
+    load();
+    render();
+
+    // Standard-Datum setzen, wenn leer
+    if (!document.getElementById("datum").value) {
+      const d = new Date();
+      const iso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      document.getElementById("datum").value = iso;
+    }
+  </script>
+</body>
+</html>
